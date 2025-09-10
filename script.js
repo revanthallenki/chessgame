@@ -3,10 +3,58 @@ var game = new Chess();
 var $status = $('#status');
 var $fen = $('#fen');
 var $pgn = $('#pgn');
+var whiteSquareGrey = '#a9a9a9'
+var blackSquareGrey = '#696969'
+
 
 let c_player = null;
 let currentmatchtime = null;
 let timerinstance = null;
+
+
+function removeGreySquares () {
+    $('#myBoard .square-55d63').css('background', '')
+  }
+  
+  function greySquare (square) {
+    var $square = $('#myBoard .square-' + square)
+  
+    var background = whiteSquareGrey
+    if ($square.hasClass('black-3c85d')) {
+      background = blackSquareGrey
+    }
+  
+    $square.css('background', background)
+  }
+
+  
+
+function onMouseoverSquare (square, piece) {
+    // get list of possible moves for this square
+    var moves = game.moves({
+      square: square,
+      verbose: true
+    })
+  
+    // exit if there are no moves available for this square
+    if (moves.length === 0) return
+  
+    // highlight the square they moused over
+    greySquare(square)
+  
+    // highlight the possible squares for this piece
+    for (var i = 0; i < moves.length; i++) {
+      greySquare(moves[i].to)
+    }
+  }
+  
+  function onMouseoutSquare (square, piece) {
+    removeGreySquares()
+  }
+  
+
+
+
 
 function startTimer(seconds, container, oncomplete) {
     let startTime, timer, obj, ms = seconds * 1000,
@@ -117,6 +165,8 @@ var config = {
     onDragStart: onDragStart,
     onDrop: onDrop,
     onSnapEnd: onSnapEnd,
+    onMouseoutSquare: onMouseoutSquare,
+  onMouseoverSquare: onMouseoverSquare,
     onMoveEnd: onMoveEnd // Implemented this function
 };
 board = Chessboard('myBoard', config);
