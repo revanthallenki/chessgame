@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>chess</title>
+    <script src="https://code.jquery.com/jquery-3.7.1.min.js" integrity="sha256-/JqT3SQfawRcv/BIHPThkBvs0OEvtFFmqPF/lYI/Cxo=" crossorigin="anonymous"></script>
+    <!-- <script src="https://cdnjs.cloudflare.com/ajax/libs/chess.js/0.10.3/chess.min.js" integrity="sha512-xRllwz2gdZciIB+AkEbeq+gVhX8VB8XsfqeFbUh+SzHlN96dEduwtTuVuc2u9EROlmW9+yhRlxjif66ORpsgVA==" crossorigin="anonymous" referrerpolicy="no-referrer"></script> -->
+    <script src="./lib/chess.js"></script>
+    <link rel="stylesheet" href="./lib/chessboardjs/css/chessboard-1.0.0.min.css">
+    <link rel="stylesheet" href="./style.css">
+    <script src="https://cdn.socket.io/4.8.1/socket.io.min.js" integrity="sha384-mkQ3/7FUtcGyoppY6bz/PORYoGqOl7/aSUMn2ymDOJcapfS6PHqxhRTMh1RR0Q6+" crossorigin="anonymous"></script>
+</head>
+<body>
+    <p id="total_players">Total player : 100</p>
+    <h1 style="text-align: center;margin-top: 40px;">Chess Game</h1>
+    <div id="main-element" class="display-f">
+        <div id="myBoard" style="width: 500px"></div>
+        <div id="buttonsparent" style="display: flex; gap: 20px;">
+            <button data-time="10" class="timer-button">10 Min</button>
+            <button data-time="15" class="timer-button">15 Min</button>
+            <button data-time="20" class="timer-button">20 Min</button>
+        </div>
+
+        <div id="move1Btn" >
+            <input type="text" placeholder="Enter move" />
+            <button id="movebutton" class="movebtn">MOVE</button>
+        </div>
+
+    </div>
+
+    <p id="waiting_text_p" class="display-none">WAITING FOR OPPONENT TO JOIN . . .</p>
+    <script src="./lib/chessboardjs/js/chessboard-1.0.0.min.js"></script>
+    <script src="./script.js"></script>
+</body>
+</html>

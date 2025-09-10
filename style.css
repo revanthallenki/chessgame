@@ -1,0 +1,57 @@
+body{
+    background-color: black ;
+    color: white;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+.display-f{
+    display: flex;
+    margin-top: 100px;
+    align-items: center;
+    justify-content: center;
+    gap: 50px;
+}
+
+.display-none{
+    display: none;
+}
+
+#waiting_text_p{
+    width: 90vw;
+    margin-left: auto;
+    margin-right: auto;
+    margin-top: 30vh;
+
+    text-align: center;
+    font-size: 40px;
+}
+
+
+.timer-button{
+    border: node;
+    border-radius: 4px;
+    background: white;
+    color: black;
+    font-size: 25px;
+    padding: 4px 10px;
+
+}
+
+.timer-button:hover{
+    background-color: grey;
+    color: white;
+}
+
+#total_players{
+    position: absolute;
+    right: 40px;
+    font-weight: 700;
+    font-size: 18px;
+    top: 10px;
+}
+
+
+
+#youareplayingas{
+    font-size: 30px;
+}
