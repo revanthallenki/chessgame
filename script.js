@@ -1,38 +1,39 @@
-var board1=Chessboard('myBoard', 'start')
+var board = null;
+var game = new Chess();
+var $status = $('#status');
+var $fen = $('#fen');
+var $pgn = $('#pgn');
 
-var board = null
-var game = new Chess()
-var $status = $('#status')
-var $fen = $('#fen')
-var $pgn = $('#pgn')
-
-let c_player=null;
-let currentmatchtime=null;
-
-
+let c_player = null;
+let currentmatchtime = null;
+let timerinstance = null;
 
 function startTimer(seconds, container, oncomplete) {
-    let startTime, timer, obj, ms = seconds*1000,
+    let startTime, timer, obj, ms = seconds * 1000,
         display = document.getElementById(container);
     obj = {};
     obj.resume = function() {
         startTime = new Date().getTime();
-        timer = setInterval(obj.step,250); // adjust this number to affect granularity
-                            // lower numbers are more accurate, but more CPU-expensive
+        timer = setInterval(obj.step, 250);
     };
     obj.pause = function() {
-        ms = obj.step();
-        clearInterval(timer);
+        if (timer) {
+            ms = obj.step();
+            clearInterval(timer);
+        }
     };
     obj.step = function() {
-        let now = Math.max(0,ms-(new Date().getTime()-startTime)),
-            m = Math.floor(now/60000), s = Math.floor(now/1000)%60;
-        s = (s < 10 ? "0" : "")+s;
-        display.innerHTML = m+":"+s;
-        if( now == 0) {
+        let now = Math.max(0, ms - (new Date().getTime() - startTime)),
+            m = Math.floor(now / 60000),
+            s = Math.floor(now / 1000) % 60;
+        s = (s < 10 ? "0" : "") + s;
+        if (display) {
+            display.innerHTML = m + ":" + s;
+        }
+        if (now == 0) {
             clearInterval(timer);
             obj.resume = function() {};
-            if( oncomplete) oncomplete();
+            if (oncomplete) oncomplete();
         }
         return now;
     };
@@ -40,211 +41,268 @@ function startTimer(seconds, container, oncomplete) {
     return obj;
 }
 
-
-
-
-function onDragStart (source, piece, position, orientation) {
-
-    if(game.turn() != c_player){
+function onDragStart(source, piece, position, orientation) {
+    if (game.turn() !== c_player || game.game_over()) {
         return false;
     }
-  // do not pick up pieces if the game is over
-  if (game.game_over()) return false
-
-  // only pick up pieces for the side to move
-  if ((game.turn() === 'w' && piece.search(/^b/) !== -1) ||
-      (game.turn() === 'b' && piece.search(/^w/) !== -1)) {
-    return false
-  }
+    if ((game.turn() === 'w' && piece.search(/^b/) !== -1) ||
+        (game.turn() === 'b' && piece.search(/^w/) !== -1)) {
+        return false;
+    }
 }
 
-function onMoveEnd(sorce,target){
-
-}
-
-
-function onDrop (source, target) {
-    // see if the move is legal
+function onDrop(source, target) {
     var move = game.move({
         from: source,
         to: target,
-        promotion: 'q' // NOTE: always promote to a queen for example simplicity
-    })
+        promotion: 'q'
+    });
+    if (move === null) return 'snapback';
 
-    // illegal move
-    if (move === null) return 'snapback'
-
-    socket.emit('sync_state',game.fen(),game.turn());
-        if(timerinstance){
-            timerinstance.pause();
-        }else{
-            timerinstance = startTimer(Number(currentmatchtime)*60, "timerdisplay", function() {alert("Done!");});
-            
-        }
-    updateStatus()
+    // Manually call onMoveEnd to sync the state after a drag-and-drop move
+    onMoveEnd();
 }
 
-
-function onChange(){
-    console.log("hi");
-    if(game.game_over()){
-        if(game.in_checkmate()){
+// This function now handles all post-move logic
+function onMoveEnd(oldPos, newPos) {
+    updateStatus();
+    socket.emit('sync_state', game.fen(), game.turn());
+    if (timerinstance) {
+        timerinstance.pause();
+    }
+    // Check for game over state here
+    if (game.game_over()) {
+        if (game.in_checkmate()) {
             const winner = game.turn() === 'b' ? 'White' : 'Black';
-            socket.emit('game_over',winner);
+            socket.emit('game_over', winner);
+        } else if (game.in_draw() || game.in_stalemate() || game.insufficient_material()) {
+            socket.emit('game_over', 'draw');
         }
     }
 }
 
-// update the board position after the piece snap
-// for castling, en passant, pawn promotion
-function onSnapEnd () {
-  board.position(game.fen())
+function onSnapEnd() {
+    board.position(game.fen());
 }
 
-function updateStatus () {
-  var status = ''
-
-  var moveColor = 'White'
-  if (game.turn() === 'b') {
-    moveColor = 'Black'
-  }
-
-  // checkmate?
-  if (game.in_checkmate()) {
-    status = 'Game over, ' + moveColor + ' is in checkmate.'
-  }
-
-  // draw?
-  else if (game.in_draw()) {
-    status = 'Game over, drawn position'
-  }
-
-  // game still on
-  else {
-    status = moveColor + ' to move'
-
-    // check?
-    if (game.in_check()) {
-      status += ', ' + moveColor + ' is in check'
+function updateStatus() {
+    var status = '';
+    var moveColor = 'White';
+    if (game.turn() === 'b') {
+        moveColor = 'Black';
     }
-  }
 
-  $status.html(status)
-  $fen.html(game.fen())
-  $pgn.html(game.pgn())
+    if (game.in_checkmate()) {
+        status = 'Game over, ' + moveColor + ' is in checkmate.';
+    } else if (game.in_draw()) {
+        status = 'Game over, drawn position';
+    } else {
+        status = moveColor + ' to move';
+        if (game.in_check()) {
+            status += ', ' + moveColor + ' is in check';
+        }
+    }
+
+    // Instead of separate status elements, let's use the game-over-message div
+    if (game.game_over()) {
+        $('#game-over-message').html(status).show();
+    } else {
+         $('#game-over-message').html(status).show(); // Show whose turn it is
+    }
 }
-
-
 
 var config = {
-  draggable: true,
-  position: 'start',
-  onDragStart: onDragStart,
-  onDrop: onDrop,
-  onChange: onChange,
-  onSnapEnd: onSnapEnd,
-  onMoveEnd: onMoveEnd
+    draggable: true,
+    position: 'start',
+    onDragStart: onDragStart,
+    onDrop: onDrop,
+    onSnapEnd: onSnapEnd,
+    onMoveEnd: onMoveEnd // Implemented this function
+};
+board = Chessboard('myBoard', config);
 
-}
-board = Chessboard('myBoard', config)
-
-updateStatus()
-
-
-
-function handleButtonClick(event) {
-    // alert("clicked")
-    const timer= Number(event.target.getAttribute('data-time'));
-    // alert(timer);
-    socket.emit('want_to_play',timer);
+function handlePlayButtonClick(event) {
+    const time = Number(event.target.getAttribute('data-time'));
+    socket.emit('want_to_play', time);
     $('#main-element').hide();
     $('#waiting_text_p').show();
 }
 
-let timerinstance=null;
+document.addEventListener('DOMContentLoaded', function() {
+    const buttons = document.getElementsByClassName('timer-button');
+    for (let index = 0; index < buttons.length; index++) {
+        const button = buttons[index];
+        button.addEventListener('click', handlePlayButtonClick);
+    }
 
-function handleMove(event){
-    game.move('e2-e4');
-    board.move('e2-e4');
-    updateStatus()
-    socket.emit('sync_state',game.fen(),game.turn());
-        if(timerinstance){
-            timerinstance.pause();
-        }else{
-            timerinstance = startTimer(Number(currentmatchtime)*60, "timerdisplay", function() {alert("Done!");});
-            
+    $('#make-move-btn').on('click', function() {
+        makeMoveFromInput();
+    });
+
+    $('#voice-move-btn').on('click', function() {
+        startSpeechRecognition();
+    });
+
+    function makeMoveFromInput() {
+        if (game.turn() !== c_player) {
+            showMoveError("It's not your turn.");
+            return;
         }
-    updateStatus()
-}
 
-document.addEventListener('DOMContentLoaded',function(){
-   const buttons=document.getElementsByClassName('timer-button');
-   for (let index = 0; index < buttons.length; index++) {
-    const button = buttons[index];
-    button.addEventListener('click',handleButtonClick);
-    // button.onclick(function(event){
-    //     handleButtonClick(event);
-    // })
-    const btn=document.getElementById('movebutton');
-    btn.addEventListener('click',handleMove);
+        const moveStr = $('#move-input').val();
+        if (!moveStr) return;
+        
+        const move = game.move(moveStr, { sloppy: true });
 
-    
-   } 
+        if (move === null) {
+            showMoveError('Illegal move.');
+            return;
+        }
+        
+        hideMoveError();
+        // Making a move programmatically will trigger onMoveEnd
+        board.move(move.from + '-' + move.to);
+        $('#move-input').val('');
+    }
+
+    // --- Voice Command Logic ---
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    let recognition;
+
+    if (SpeechRecognition) {
+        recognition = new SpeechRecognition();
+        recognition.continuous = false;
+        recognition.lang = 'en-US';
+        recognition.interimResults = false;
+        recognition.maxAlternatives = 1;
+
+        recognition.onstart = function() {
+            $('#voice-status').text('Listening...').show();
+        };
+
+        recognition.onspeechend = function() {
+            recognition.stop();
+            $('#voice-status').hide();
+        };
+
+        recognition.onresult = function(event) {
+            const transcript = event.results[0][0].transcript;
+            handleVoiceCommand(transcript);
+        };
+
+        recognition.onerror = function(event) {
+            console.error('Speech recognition error', event.error);
+            $('#voice-status').text('Error: ' + event.error).show();
+        };
+    }
+
+    function startSpeechRecognition() {
+        if (!recognition) {
+            alert("Sorry, your browser doesn't support voice commands.");
+            return;
+        }
+        if (game.turn() !== c_player) {
+            showMoveError("It's not your turn to speak a move.");
+            return;
+        }
+        recognition.start();
+    }
+
+    function handleVoiceCommand(command) {
+        let processedCommand = command.toLowerCase();
+
+        // Spoken numbers and common misheard words to digits/letters
+        const replacements = {
+            'one': '1', 'two': '2', 'to': '2', 'three': '3', 'four': '4', 'for': '4',
+            'five': '5', 'six': '6', 'seven': '7', 'eight': '8', 'ate': '8',
+            'see': 'c', 'be': 'b', 'bee': 'b'
+        };
+        for (const word in replacements) {
+            // Use word boundaries to avoid replacing parts of words
+            processedCommand = processedCommand.replace(new RegExp('\\b' + word + '\\b', 'g'), replacements[word]);
+        }
+
+        // Now, remove all non-alphanumeric characters except for the valid chess notation letters and numbers
+        let moveStr = processedCommand.replace(/[^a-h1-8]/g, '');
+
+        // Validate the format
+        if (!/^[a-h][1-8][a-h][1-8]$/.test(moveStr)) {
+            showMoveError('Could not understand move: "' + command + '". Processed to: "' + moveStr + '"');
+            return;
+        }
+        
+        const move = game.move(moveStr, { sloppy: true });
+
+        if (move === null) {
+            showMoveError('Illegal move: ' + command);
+            return;
+        }
+        
+        hideMoveError();
+        board.move(move.from + '-' + move.to);
+    }
+
+
+    function showMoveError(message) {
+        $('#move-error').text(message).show();
+    }
+
+    function hideMoveError() {
+        $('#move-error').hide();
+    }
 });
 
 const socket = io('http://localhost:3000');
 
-
-socket.on('total_players_cnt_change',function(totalplayers){
+socket.on('total_players_cnt_change', function(totalplayers) {
     $('#total_players').html('Total player : ' + totalplayers);
-})
+});
 
-// socket.on('i_am_connected',function(){
-//     alert("u r connected to backend");
-// })
-
-
-socket.on("match_made",(color,time)=>{
-    // alert("u are playing as " + color) 
-    c_player=color;
-    
+socket.on("match_made", (color, time) => {
+    c_player = color;
     $('#main-element').show();
-    $('#room-controls').show();
+    $('#move-controls').css('display', 'flex');
     $('#waiting_text_p').hide();
-    const currentplayer=color === 'b' ? 'Black' : 'White';
-    $('#buttonsparent').html("<p id='youareplayingas' >You are playing as " + currentplayer + "</p><p id= 'timerdisplay' ></p>");
-    // $('#buttonsparent').html("<p id You are playing as " + currentplayer );
+    const currentplayer = color === 'b' ? 'Black' : 'White';
+    $('#buttonsparent').html("<p id='youareplayingas'>You are playing as " + currentplayer + "</p><p id='timerdisplay'></p>");
     game.reset();
-    board.clear();
     board.start();
     board.orientation(currentplayer.toLowerCase());
-    currentmatchtime=time;
-    if(game.turn()===c_player){
-        timerinstance = startTimer(Number(time)*60, "timerdisplay", function() {alert("Done!");});
-    }else{
-        timerinstance=null;
+    currentmatchtime = time;
+    updateStatus();
+
+    if (game.turn() === c_player) {
+        if(timerinstance) timerinstance.pause();
+        timerinstance = startTimer(Number(time) * 60, "timerdisplay", function() {
+            const winner = game.turn() === 'b' ? 'White' : 'Black';
+            socket.emit('game_over', winner);
+        });
+    } else {
+        if(timerinstance) timerinstance.pause();
+        timerinstance = null;
+        // Display opponent's timer
+        $('#timerdisplay').html(time + ":00");
     }
-    // pause:
-    timer.pause();
-    // resume:
-    timer.resume();
+});
 
-})
-
-socket.on('sync_state_fromserver',function(fen,turn){
+socket.on('sync_state_fromserver', function(fen, turn) {
     game.load(fen);
-    game.setTurn(turn);
     board.position(fen);
-    if(timerinstance){
+    updateStatus();
+    
+    if (timerinstance) {
         timerinstance.resume();
-    }else{
-        timerinstance = startTimer(Number(currentmatchtime)*60, "timerdisplay", function() {alert("Done!");});
-        
+    } else {
+        timerinstance = startTimer(Number(currentmatchtime) * 60, "timerdisplay", function() {
+            const winner = game.turn() === 'b' ? 'White' : 'Black';
+            socket.emit('game_over', winner);
+        });
     }
-})
+});
 
-socket.on('game_over_fromserver',function(winner){
-    // const msg=winner
-    alert(winner + " won the match");
-    window.location.reload();
-})
+socket.on('game_over_fromserver', function(winner) {
+    const message = winner === 'draw' ? "The game is a draw!" : winner + " won the match!";
+    $('#game-over-message').text(message).show();
+    if(timerinstance) timerinstance.pause();
+});
+

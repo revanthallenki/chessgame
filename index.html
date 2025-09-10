@@ -6,11 +6,10 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>chess</title>
     <script src="https://code.jquery.com/jquery-3.7.1.min.js" integrity="sha256-/JqT3SQfawRcv/BIHPThkBvs0OEvtFFmqPF/lYI/Cxo=" crossorigin="anonymous"></script>
-    <!-- <script src="https://cdnjs.cloudflare.com/ajax/libs/chess.js/0.10.3/chess.min.js" integrity="sha512-xRllwz2gdZciIB+AkEbeq+gVhX8VB8XsfqeFbUh+SzHlN96dEduwtTuVuc2u9EROlmW9+yhRlxjif66ORpsgVA==" crossorigin="anonymous" referrerpolicy="no-referrer"></script> -->
     <script src="./lib/chess.js"></script>
     <link rel="stylesheet" href="./lib/chessboardjs/css/chessboard-1.0.0.min.css">
     <link rel="stylesheet" href="./style.css">
-    <script src="https://cdn.socket.io/4.8.1/socket.io.min.js" integrity="sha384-mkQ3/7FUtcGyoppY6bz/PORYoGqOl7/aSUMn2ymDOJcapfS6PHqxhRTMh1RR0Q6+" crossorigin="anonymous"></script>
+    <script src="https://cdn.socket.io/4.8.1/socket.io.min.js" xintegrity="sha384-mkQ3/7FUtcGyoppY6bz/PORYoGqOl7/aSUMn2ymDOJcapfS6PHqxhRTMh1RR0Q6+" crossorigin="anonymous"></script>
 </head>
 <body>
     <p id="total_players">Total player : 100</p>
@@ -22,16 +21,25 @@
             <button data-time="15" class="timer-button">15 Min</button>
             <button data-time="20" class="timer-button">20 Min</button>
         </div>
-
-        <div id="move1Btn" >
-            <input type="text" placeholder="Enter move" />
-            <button id="movebutton" class="movebtn">MOVE</button>
+        <div id="move-controls" style="display: none; flex-direction: column; gap: 10px; align-items: center;">
+            <input type="text" id="move-input" placeholder="Enter move (e.g., e2e4)" style="padding: 8px; border-radius: 4px; border: 1px solid #ccc; color: black;"/>
+            <button id="make-move-btn" style="padding: 8px 16px; border-radius: 4px; border: none; background-color: #4CAF50; color: white; cursor: pointer;">Make Move</button>
+            <p id="move-error" style="color: red; display: none; margin-top: 5px;"></p>
+            <button id="voice-move-btn" style="padding: 8px 12px; border-radius: 4px; border: none; background-color: #007bff; color: white; cursor: pointer; margin-top: 10px; display: flex; align-items: center; gap: 5px;">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-mic-fill" viewBox="0 0 16 16">
+                    <path d="M5 3a3 3 0 0 1 6 0v5a3 3 0 0 1-6 0V3z"/>
+                    <path d="M3.5 6.5A.5.5 0 0 1 4 7v1a4 4 0 0 0 8 0V7a.5.5 0 0 1 1 0v1a5 5 0 0 1-4.5 4.975V15h3a.5.5 0 0 1 0 1h-7a.5.5 0 0 1 0-1h3v-2.025A5 5 0 0 1 3 8V7a.5.5 0 0 1 .5-.5z"/>
+                </svg>
+                Speak Move
+            </button>
+            <p id="voice-status" style="color: #007bff; display: none; margin-top: 5px;"></p>
         </div>
-
     </div>
-
+    <div id="game-over-message" class="display-none" style="text-align: center; font-size: 24px; margin-top: 20px; color: #ffc107;"></div>
     <p id="waiting_text_p" class="display-none">WAITING FOR OPPONENT TO JOIN . . .</p>
     <script src="./lib/chessboardjs/js/chessboard-1.0.0.min.js"></script>
     <script src="./script.js"></script>
 </body>
 </html>
+
+
